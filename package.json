@@ -1,0 +1,16 @@
+{
+  "name": "access-log-check",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monthly access-log inspection dashboard",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "google-auth-library": "^11.0.2",
+    "xlsx": "^0.18.5"
+  }
+}

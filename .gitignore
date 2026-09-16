@@ -1,0 +1,7 @@
+.env
+node_modules/
+data/monthly-stats.json
+data/monthly-anomaly-history.json
+data/clarification-requests.json
+data/ip-analysis-report.md
+data/account-aliases.json
