@@ -11,9 +11,9 @@ const path = require('path');
 const os = require('os');
 const { OAuth2Client } = require('google-auth-library');
 
-// agit-automation 프로젝트 경로. 환경변수로 덮어쓸 수 있다 (analyze-cli.js의
-// ACCESS_LOG_CLI_PATH 관례와 동일).
-const AGIT_AUTOMATION_DIR = process.env.AGIT_AUTOMATION_DIR
+// agit-automation 프로젝트 경로. 환경변수(AGIT_AUTOMATION_PATH)로 덮어쓸 수 있고,
+// 없으면 기존 하드코딩 기본값(~/agit-automation)을 그대로 쓴다 (하위호환 유지).
+const AGIT_AUTOMATION_DIR = process.env.AGIT_AUTOMATION_PATH
   || path.join(os.homedir(), 'agit-automation');
 const CREDENTIALS_PATH = path.join(AGIT_AUTOMATION_DIR, 'credentials.json');
 const TOKEN_PATH = path.join(AGIT_AUTOMATION_DIR, 'token.json');
