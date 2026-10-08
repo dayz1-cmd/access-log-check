@@ -425,6 +425,10 @@ app.post('/api/publish-report', async (req, res) => {
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => {
-  console.log(`Access log dashboard: http://localhost:${PORT}`);
+// 개인정보 접속기록이 보이는 페이지인데 로그인 기능이 없으므로, 기본값은 서버 자기
+// 자신(127.0.0.1)에서만 열리게 한다. 외부에서는 터널(포트포워딩)로만 접속한다.
+// 꼭 다른 주소로 열어야 할 때만 .env 에 HOST 를 지정한다.
+const HOST = process.env.HOST || '127.0.0.1';
+app.listen(PORT, HOST, () => {
+  console.log(`Access log dashboard: http://${HOST}:${PORT}`);
 });
