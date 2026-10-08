@@ -6,6 +6,15 @@ try {
   if (error.code !== 'ENOENT') throw error;
 }
 
+// 서버(카카오클라우드)는 사내 프록시를 거쳐야만 외부(구글드라이브, 아지트)로 나갈 수
+// 있는데, Node 20의 내장 fetch는 HTTPS_PROXY 같은 환경변수를 자동으로 따르지 않는다.
+// 프록시 환경변수가 있을 때만 모든 fetch가 프록시를 쓰도록 전역 설정한다
+// (Mac 로컬처럼 프록시 변수가 없으면 아무것도 바뀌지 않음).
+if (process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy) {
+  const { setGlobalDispatcher, EnvHttpProxyAgent } = require('undici');
+  setGlobalDispatcher(new EnvHttpProxyAgent());
+}
+
 const express = require('express');
 const fs = require('fs/promises');
 const path = require('path');
