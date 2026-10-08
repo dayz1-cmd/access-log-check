@@ -183,6 +183,10 @@ var AUTHORIZED_IP_RULES = [
   // 판단되어 추가 (사람이 직접 검토 후 확정).
   '144.125.248.0/24', // KCadmin(퍼블릭) 계정들이 실사용 중인 대역
   '110.249.0.0/16',   // 실사용 중인 대역 (출장/모바일망 등으로 판단)
+  // 2026-09 IAM 어드민(퍼블릭/general) 로그에서 접속자 전원이 이 IP 하나로만
+  // 찍힘 - 개인 PC IP가 아니라 퍼블릭 IAM 어드민 앞단 서버(게이트웨이) IP로
+  // 판단되어 인가로 등록 (tyger.k/yenny.0k 비인가 IP 오탐 원인).
+  '10.82.67.99',      // IAM 어드민(퍼블릭) 게이트웨이
 ];
 
 // CHECK_CONFIG에 등록된 모든 포맷 키에 위 공통 목록을 그대로 적용한다 -
@@ -485,6 +489,28 @@ function analyzeLog(logText, systemName, fmtKey) {
     }
   }
 
+  // IAM: 2026-09 export부터 menu_id/status_code 컬럼이 빠져 12칸 -> 10칸으로
+  // 바뀌었다(이전엔 created_at이 12번째 칸, 이후엔 10번째 칸). 고정 칸 번호로
+  // 읽으면 접속일시가 통째로 비고(=[3-8] "접속일시 누락" 오탐) 날짜도 안 나온다.
+  // 그래서 IAM은 헤더 이름으로 칸 위치를 찾고, 못 찾을 때만 기존 고정값을 쓴다.
+  var iamTargetCol = 8, iamParamCol = 10;
+  if (fmtKey.indexOf('IAM') === 0 && start > 0) {
+    var hdr = splitLine(rows[start - 1], fmt).map(function(h) { return h.trim().toLowerCase(); });
+    var findCol = function(re) {
+      for (var hi = 0; hi < hdr.length; hi++) { if (re.test(hdr[hi])) return hi; }
+      return -1;
+    };
+    var cTs = findCol(/^created_at/), cUser = findCol(/^user_ldap_id$/), cIp = findCol(/^ip$/);
+    if (cTs >= 0 && cUser >= 0 && cIp >= 0) {
+      var actCols = [findCol(/^menu_id$/), findCol(/^request_uri$/), findCol(/^status_code$/), findCol(/^action$/)]
+        .filter(function(c) { return c >= 0; });
+      fmt = Object.assign({}, fmt, {ts: cTs, user: cUser, ip: cIp, action: actCols});
+      var cTarget = findCol(/^target_id$/), cParam = findCol(/^parameter$/);
+      if (cTarget >= 0) iamTargetCol = cTarget;
+      if (cParam >= 0) iamParamCol = cParam;
+    }
+  }
+
   var loginFailures = [];
   var afterHours = [];
   var multiIPs = {};
@@ -533,11 +559,11 @@ function analyzeLog(logText, systemName, fmtKey) {
         var u = user || '';
         // IAM: 실패 시 user_ldap_id가 비어있고 target_id(8) 또는 parameter(10)에 ldapId 있음
         if (fmtKey.indexOf('IAM') === 0) {
-          var tid = getCol(parts, 8);
+          var tid = getCol(parts, iamTargetCol);
           if (tid) {
             u = tid;
           } else {
-            var param = getCol(parts, 10);
+            var param = getCol(parts, iamParamCol);
             var lm = param.match(/ldapId['"']?\s*:\s*['"']([^'"']+)/i);
             if (lm) u = lm[1];
           }
